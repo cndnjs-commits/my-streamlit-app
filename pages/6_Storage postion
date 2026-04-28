@@ -1,61 +1,66 @@
+import streamlit as st
 import pandas as pd
 import os
-import tkinter as tk
-from tkinter import filedialog, messagebox
 
-def convert_data_file(data_file_path, output_file_path):
+st.set_page_config(page_title="Storage Position 변경기", layout="wide")
+
+st.title("📂 Storage Position 변경기")
+st.info("💡 **Chip 실험 Work**에서 다운로드한 **Chip Plate Export 파일(CSV)**을 업로드하여 Storage Position(`StoreTubeID`)을 자동 생성합니다.")
+
+# 사용법 안내
+with st.expander("📖 사용 방법", expanded=True):
+    st.write("""
+    1. Chip 실험 Work에서 **Chip Plate Export 파일(.csv)**을 다운로드합니다.
+    2. 아래 업로드 칸에 해당 파일을 업로드합니다.
+    3. 아래 미리보기 표에서 데이터가 제대로 매핑되었는지 확인합니다.
+    4. **CSV 다운로드** 버튼을 눌러 결과물을 저장합니다.
+    """)
+
+# 파일 업로더
+uploaded_file = st.file_uploader("Chip Plate Export 파일 업로드 (CSV 포맷)", type=['csv'])
+
+if uploaded_file:
     try:
-        # 1. 파일 로드
-        data_df = pd.read_csv(data_file_path)
-
-        # 2. 파일명에서 ChipPlateID 추출
-        chip_plate_id = os.path.splitext(os.path.basename(data_file_path))[0]
-
-        # 3. 새로운 데이터프레임 생성
-        # 주의: pandas는 중복된 컬럼명(Well)이 있을 때 두 번째 컬럼을 'Well.1'로 자동 변경합니다.
-        converted_result_df = pd.DataFrame({
-            'SamplePlate': data_df['SamplePlate'],
-            'SamplePosition': data_df['Well'],
-            'Product ID': data_df['Product ID'],
-            'ChipPlateID': data_df['ChipPlate'],
-            'ChipPlatePosition': data_df['Well.1'],
-            'StoreTubeID': chip_plate_id + '_' + data_df['Well.1'].astype(str),
-            'MG ID': data_df['MG ID'],  
-        })
-
-        # 4. 결과 저장
-        converted_result_df.to_csv(output_file_path, index=False, encoding='utf-8-sig')
-        messagebox.showinfo("완료", f"파일 변환 및 저장이 완료되었습니다.\n저장 경로: {output_file_path}")
+        # 데이터 파일 읽기
+        data_df = pd.read_csv(uploaded_file)
         
-    except KeyError as e:
-        messagebox.showerror("오류", f"원본 CSV 파일에 필수 컬럼이 누락되었습니다.\n누락된 컬럼: {e}")
+        # 파일명에서 확장자를 제외한 순수 이름 추출 (ChipPlateID)
+        # 예: "Experiment_001.csv" -> "Experiment_001"
+        chip_plate_id = os.path.splitext(uploaded_file.name)[0]
+        
+        # 원본 데이터에 필수 컬럼이 있는지 확인
+        required_cols = ['SamplePlate', 'Well', 'Product ID', 'ChipPlate', 'Well.1', 'MG ID']
+        missing_cols = [col for col in required_cols if col not in data_df.columns]
+        
+        if missing_cols:
+            st.error(f"❌ 업로드한 파일에 다음 필수 컬럼이 없습니다: {', '.join(missing_cols)}")
+        else:
+            # 새로운 템플릿 구조로 DataFrame 생성 및 StoreTubeID 조합
+            converted_result_df = pd.DataFrame({
+                'SamplePlate': data_df['SamplePlate'],
+                'SamplePosition': data_df['Well'],
+                'Product ID': data_df['Product ID'],
+                'ChipPlateID': data_df['ChipPlate'],
+                'ChipPlatePosition': data_df['Well.1'],
+                'StoreTubeID': chip_plate_id + '_' + data_df['Well.1'].astype(str), # 파일명 + "_" + Well.1
+                'MG ID': data_df['MG ID'],  
+            })
+            
+            st.success("✅ 파일 변환이 완료되었습니다!")
+            
+            # 결과 미리보기
+            st.dataframe(converted_result_df)
+            
+            # 엑셀(CSV) 다운로드 시 한글 깨짐을 방지하기 위해 utf-8-sig 인코딩 사용
+            csv_data = converted_result_df.to_csv(index=False).encode('utf-8-sig')
+            
+            # 파일 다운로드 버튼 생성
+            st.download_button(
+                label="📥 변환된 CSV 파일 다운로드",
+                data=csv_data,
+                file_name=f"Converted_{uploaded_file.name}",
+                mime="text/csv"
+            )
+            
     except Exception as e:
-        messagebox.showerror("오류", f"알 수 없는 오류가 발생했습니다:\n{e}")
-
-def select_files():
-    input_file_path = filedialog.askopenfilename(title="Select the input CSV file", filetypes=[("CSV files", "*.csv")])
-    if not input_file_path:
-        return
-
-    output_file_path = filedialog.asksaveasfilename(title="Save the output CSV file", defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
-    if not output_file_path:
-        return
-
-    convert_data_file(input_file_path, output_file_path)
-
-# UI 초기화
-root = tk.Tk()
-root.title("Storage Position 변경기")
-root.geometry("420x220")
-
-usage_text = (
-    "1. Chip 실험 Work에서 Chip Plate Export 파일(CSV)을 업로드 합니다.\n"
-    "2. 변환된 파일을 저장할 위치와 이름을 지정해 줍니다."
-)
-tk.Label(root, text=usage_text, justify="left").pack(pady=15)
-tk.Label(root, text="파일을 선택하려면 아래 버튼을 클릭하세요.").pack(pady=5)
-
-select_button = tk.Button(root, text="파일 선택 및 변환", command=select_files, width=20, height=2)
-select_button.pack(pady=10)
-
-root.mainloop()
+        st.error(f"❌ 데이터 처리 중 오류가 발생했습니다: {e}")
