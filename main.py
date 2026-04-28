@@ -62,7 +62,7 @@ with col4:
 
 st.write("")
 
-# --- 3열 (5번 도구 및 안내) ---
+# --- 3열 (5번, 6번 도구) ---
 col5, col6 = st.columns(2)
 
 with col5:
@@ -77,12 +77,23 @@ with col5:
 
 with col6:
     with st.container(border=True):
-        st.subheader("📌 시스템 이용 안내")
+        st.subheader("📂 6. Storage Position 변경기")
         st.write("""
-        - **독립 작동**: 각 메뉴의 기능은 서로 간섭 없이 독립적으로 작동합니다.
-        - **오류 해결**: 처리 중 알 수 없는 오류가 발생하거나 화면이 멈춘 경우, 키보드의 `F5`를 눌러 페이지를 새로고침 해주세요.
-        - **보안**: 모든 데이터 변환과 추출은 이 PC/서버 내부에서만 이루어지며 외부로 유출되지 않습니다.
+        **[Chip Plate Data]**
+        - Chip Plate Export 파일(CSV) 업로드 지원
+        - 파일명 기반 ChipPlateID 자동 추출 
+        - StoreTubeID 자동 조합 및 신규 양식 생성
         """)
+
+st.write("")
+
+# --- 하단 시스템 안내 ---
+with st.expander("📌 시스템 이용 안내"):
+    st.write("""
+    - **독립 작동**: 각 메뉴의 기능은 서로 간섭 없이 독립적으로 작동합니다.
+    - **오류 해결**: 처리 중 알 수 없는 오류가 발생하거나 화면이 멈춘 경우, 키보드의 `F5`를 눌러 페이지를 새로고침 해주세요.
+    - **보안**: 모든 데이터 변환과 추출은 이 PC/서버 내부에서만 이루어지며 외부로 유출되지 않습니다.
+    """)
 
 st.divider()
 st.caption("© 2026 Macrogen. 내부 업무 효율화를 위해 개발된 전용 도구입니다.")
